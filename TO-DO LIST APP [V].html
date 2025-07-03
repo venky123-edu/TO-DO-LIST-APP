@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
+        }
+        
+        .task-card {
+            transition: all 0.3s ease;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .priority-low {
+            border-left: 4px solid #10b981;
+        }
+        
+        .priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .priority-high {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .completed {
+            background-color: #f0fdf4;
+        }
+        
+        .completed .task-title {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="mb-8 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/b714c788-8f4d-477b-932c-836fb3a28caf.png" alt="Task Master Logo - A minimalist checkmark symbol in indigo color with a circular background" class="mr-4 rounded-full">
+                <h1 class="text-4xl font-bold text-gray-800">Task Master</h1>
+            </div>
+            <p class="text-gray-600">Manage your daily tasks efficiently</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-gray-800">My Tasks</h2>
+                <button id="addTaskBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+                    <i class="fas fa-plus mr-2"></i> Add Task
+                </button>
+            </div>
+
+            <div id="taskList" class="space-y-4">
+                <!-- Tasks will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center text-sm text-gray-500">
+            <div id="taskCounter">0 tasks</div>
+            <div>Task Master v1.0</div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="taskModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-semibold">Add New Task</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                
+                <div class="mb-4">
+                    <label for="taskTitle" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                    <input type="text" id="taskTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="taskDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                    <textarea id="taskDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="priority" value="low" class="h-4 w-4 text-green-600" checked>
+                            <span class="ml-2">Low</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="priority" value="medium" class="h-4 w-4 text-yellow-600">
+                            <span class="ml-2">Medium</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="priority" value="high" class="h-4 w-4 text-red-600">
+                            <span class="ml-2">High</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelTask" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" id="saveTask" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Confirm Deletion</h3>
+                <p class="text-gray-600 mt-1">Are you sure you want to delete this task? This action cannot be undone.</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelDelete" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const taskList = document.getElementById('taskList');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const taskModal = document.getElementById('taskModal');
+        const confirmModal = document.getElementById('confirmModal');
+        const taskForm = document.getElementById('taskForm');
+        const closeModal = document.getElementById('closeModal');
+        const cancelTask = document.getElementById('cancelTask');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+        const taskCounter = document.getElementById('taskCounter');
+        
+        // State
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let currentTaskId = null;
+        
+        // Initialize the app
+        function init() {
+            renderTaskList();
+            setupEventListeners();
+            updateTaskCounter();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            addTaskBtn.addEventListener('click', openAddTaskModal);
+            closeModal.addEventListener('click', closeModalHandler);
+            cancelTask.addEventListener('click', closeModalHandler);
+            cancelDelete.addEventListener('click', closeConfirmModal);
+            confirmDelete.addEventListener('click', deleteTask);
+            taskForm.addEventListener('submit', handleTaskSubmit);
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === taskModal) {
+                    closeModalHandler();
+                }
+                if (e.target === confirmModal) {
+                    closeConfirmModal();
+                }
+            });
+        }
+        
+        // Modal handlers
+        function openAddTaskModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Task';
+            document.getElementById('taskId').value = '';
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDescription').value = '';
+            document.querySelector('input[name="priority"][value="low"]').checked = true;
+            taskModal.classList.remove('hidden');
+        }
+        
+        function openEditTaskModal(task) {
+            document.getElementById('modalTitle').textContent = 'Edit Task';
+            document.getElementById('taskId').value = task.id;
+            document.getElementById('taskTitle').value = task.title;
+            document.getElementById('taskDescription').value = task.description;
+            document.querySelector(`input[name="priority"][value="${task.priority}"]`).checked = true;
+            taskModal.classList.remove('hidden');
+        }
+        
+        function closeModalHandler() {
+            taskModal.classList.add('hidden');
+        }
+        
+        function openConfirmModal(taskId) {
+            currentTaskId = taskId;
+            confirmModal.classList.remove('hidden');
+        }
+        
+        function closeConfirmModal() {
+            confirmModal.classList.add('hidden');
+        }
+        
+        // Task CRUD operations
+        function handleTaskSubmit(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('taskTitle').value.trim();
+            const description = document.getElementById('taskDescription').value.trim();
+            const priority = document.querySelector('input[name="priority"]:checked').value;
+            const taskId = document.getElementById('taskId').value;
+            
+            if (taskId) {
+                // Update existing task
+                const taskIndex = tasks.findIndex(t => t.id === taskId);
+                tasks[taskIndex] = { ...tasks[taskIndex], title, description, priority };
+            } else {
+                // Add new task
+                const newTask = {
+                    id: Date.now().toString(),
+                    title,
+                    description,
+                    priority,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+                tasks.push(newTask);
+            }
+            
+            saveTasks();
+            renderTaskList();
+            closeModalHandler();
+        }
+        
+        function toggleTaskComplete(taskId) {
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            tasks[taskIndex].completed = !tasks[taskIndex].completed;
+            saveTasks();
+            renderTaskList();
+        }
+        
+        function deleteTask() {
+            tasks = tasks.filter(t => t.id !== currentTaskId);
+            saveTasks();
+            renderTaskList();
+            closeConfirmModal();
+        }
+        
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            updateTaskCounter();
+        }
+        
+        // Rendering
+        function renderTaskList() {
+            taskList.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                taskList.innerHTML = `
+                    <div class="text-center py-12">
+                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/ed94fe95-5ed8-45a1-9c7c-5cf6622861ad.png" alt="Empty task list illustration - A clipboard with a checkmark symbol on a mint green background" class="mx-auto mb-4 rounded-lg">
+                        <p class="text-gray-500">No tasks yet. Add one to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort tasks: incomplete first, then by priority, then by creation date
+            const sortedTasks = [...tasks].sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                if (a.priority === b.priority) return new Date(a.createdAt) - new Date(b.createdAt);
+                const priorityOrder = { high: 1, medium: 2, low: 3 };
+                return priorityOrder[a.priority] - priorityOrder[b.priority];
+            });
+            
+            sortedTasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = `task-card bg-white border border-gray-200 rounded-lg p-4 ${task.completed ? 'completed' : ''} priority-${task.priority}`;
+                taskElement.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start">
+                            <button data-id="${task.id}" class="complete-btn mr-3 mt-1">
+                                <i class="far ${task.completed ? 'fa-check-circle text-green-500' : 'fa-circle text-gray-300'}"></i>
+                            </button>
+                            <div>
+                                <h3 class="task-title font-medium text-gray-800 mb-1">${task.title}</h3>
+                                ${task.description ? `<p class="text-gray-600 text-sm">${task.description}</p>` : ''}
+                                <div class="flex items-center mt-2 text-xs text-gray-500">
+                                    <span class="priority-label ${getPriorityClass(task.priority)} mr-2">
+                                        ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
+                                    </span>
+                                    <span>•</span>
+                                    <span class="ml-2">${new Date(task.createdAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button data-id="${task.id}" class="edit-btn px-2 py-1 text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button data-id="${task.id}" class="delete-btn px-2 py-1 text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                taskList.appendChild(taskElement);
+            });
+            
+            // Add event listeners to dynamically created buttons
+            document.querySelectorAll('.complete-btn').forEach(btn => {
+                btn.addEventListener('click', () => toggleTaskComplete(btn.dataset.id));
+            });
+            
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const task = tasks.find(t => t.id === btn.dataset.id);
+                    openEditTaskModal(task);
+                });
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => openConfirmModal(btn.dataset.id));
+            });
+        }
+        
+        function getPriorityClass(priority) {
+            const classes = {
+                low: 'text-green-600',
+                medium: 'text-yellow-600',
+                high: 'text-red-600'
+            };
+            return classes[priority];
+        }
+        
+        function updateTaskCounter() {
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(t => t.completed).length;
+            taskCounter.textContent = `${completedTasks}/${totalTasks} tasks completed`;
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
